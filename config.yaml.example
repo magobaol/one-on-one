@@ -1,0 +1,10 @@
+# One-on-One Setup Configuration Template
+# Copy this file to config.yaml and fill in your actual values
+
+# Logging configuration
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+
+# File paths and storage
+paths:
+  download_temp: "./temp"  # Temporary folder for downloads
