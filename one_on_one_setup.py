@@ -12,6 +12,8 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
+from lib.onepassword import OnePasswordClient
+
 
 class OneOnOneSetup:
     """Main class for handling one-on-one meeting setup automation."""
@@ -55,7 +57,8 @@ class OneOnOneSetup:
         self.logger.info(f"Starting setup for colleague: {name} (@{slack_handle})")
         
         try:
-            # Placeholder - integrations will be added in subsequent commits
+            # Note: OnePasswordClient is available for secure secret retrieval
+            # but not used in current workflow - integrations will be added in subsequent commits
             self.logger.info("Foundation setup complete - integrations will be added next")
             
         except Exception as e:
