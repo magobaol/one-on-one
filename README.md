@@ -1,13 +1,15 @@
 # One-on-One Meeting Setup Automation
 
-A Python script to automate the workflow for managing one-on-one meetings with colleagues. This is the foundation project with integrations to be added incrementally.
+A Python script to automate the workflow for managing one-on-one meetings with colleagues, featuring secure token management and Slack integration.
 
-## Current Features
+## Features
 
+- **Secure token management**: Retrieves Slack API tokens from 1Password CLI
+- **Slack integration**: Downloads colleague profile photos with pagination support
+- **Photo management**: Organizes profile photos with proper naming and storage
 - **Configuration management**: YAML-based configuration system
 - **Command-line interface**: Structured CLI for colleague setup
 - **Logging system**: Configurable logging levels
-- **Project structure**: Clean modular foundation for integrations
 
 ## Setup
 
@@ -22,8 +24,17 @@ A Python script to automate the workflow for managing one-on-one meetings with c
    ```
    
 3. **Configure your settings in `config.yaml`:**
-   - Adjust logging levels if needed
-   - Configure download paths
+   - **Slack API**: Set `slack.onepassword.cli.item_name` to your Slack API token item
+   - **Photo settings**: Configure photo size and storage location
+   - **Logging**: Adjust logging levels if needed
+   - **Paths**: Configure download paths
+
+4. **Install and authenticate 1Password CLI:**
+   ```bash
+   # Install 1Password CLI (if not already installed)
+   # Then sign in and authenticate
+   op account list
+   ```
 
 ## Usage
 
@@ -31,14 +42,24 @@ A Python script to automate the workflow for managing one-on-one meetings with c
 python3 one_on_one_setup.py "Colleague Name" "slack-handle"
 ```
 
-Currently this runs the foundation setup. Integrations (Slack, OmniFocus, etc.) will be added in subsequent updates.
+This will:
+1. Securely retrieve your Slack API token from 1Password
+2. Look up the colleague in your Slack workspace 
+3. Download their profile photo to local storage
 
 ## Configuration
 
-Edit `config.yaml` (created from the template) to customize:
+### Required Settings
 
-- Logging levels (`logging.level`)
-- Download temp folder (`paths.download_temp`)
+Edit `config.yaml` (created from the template) to set:
+
+- **Slack API**: `slack.onepassword.cli.item_name` - Name of your 1Password item containing Slack token
+
+### Optional Settings
+
+- **Photo settings**: `slack.photo_size` and `slack.photo_storage`
+- **Logging levels**: `logging.level`
+- **Download temp folder**: `paths.download_temp`
 
 ### Security Note
 
@@ -47,3 +68,5 @@ Edit `config.yaml` (created from the template) to customize:
 ## Requirements
 
 - Python 3.7+
+- 1Password CLI
+- Active Slack workspace access

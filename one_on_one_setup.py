@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Dict, Any
 
 from lib.onepassword import OnePasswordClient
+from lib.slack import SlackClient
+from lib.photo_manager import PhotoManager
 
 
 class OneOnOneSetup:
@@ -23,6 +25,10 @@ class OneOnOneSetup:
         self.config_path = config_path
         self.config = self._load_config()
         self._setup_logging()
+        
+        # Initialize service clients
+        self.onepassword_client = OnePasswordClient()
+        self.photo_manager = PhotoManager(self.config)
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -45,6 +51,21 @@ class OneOnOneSetup:
         )
         self.logger = logging.getLogger(__name__)
     
+    
+    def _download_colleague_photo(self, slack_client: SlackClient, name: str, slack_handle: str) -> bool:
+        """
+        Download colleague's profile photo from Slack.
+        
+        Args:
+            slack_client: Initialized Slack client
+            name: Colleague's full name
+            slack_handle: Slack username (without @)
+            
+        Returns:
+            True if photo was downloaded successfully, False otherwise
+        """
+        return self.photo_manager.download_from_slack(slack_client, name, slack_handle)
+    
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """
         Main method to set up everything for a new colleague.
@@ -57,9 +78,24 @@ class OneOnOneSetup:
         self.logger.info(f"Starting setup for colleague: {name} (@{slack_handle})")
         
         try:
-            # Note: OnePasswordClient is available for secure secret retrieval
-            # but not used in current workflow - integrations will be added in subsequent commits
-            self.logger.info("Foundation setup complete - integrations will be added next")
+            # Step 1: Create authenticated Slack client
+            slack_client = SlackClient.create_from_config(self.config, self.onepassword_client, dry_run)
+            
+            # Step 2: Download Slack profile photo
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would download profile photo for {name} (@{slack_handle})")
+                photo_success = True
+            else:
+                photo_success = self._download_colleague_photo(slack_client, name, slack_handle)
+                if not photo_success:
+                    self.logger.warning("Failed to download profile photo, continuing anyway...")
+            
+            # TODO: Additional integrations will be added in subsequent commits
+            # - OmniFocus tag creation
+            # - Obsidian note creation
+            # - Keyboard Maestro macro setup
+            
+            self.logger.info("Setup completed successfully!")
             
         except Exception as e:
             self.logger.error(f"Setup failed: {e}")

@@ -5,6 +5,19 @@
 logging:
   level: INFO  # DEBUG, INFO, WARNING, ERROR
 
+# Slack settings
+slack:
+  # 1Password CLI integration for secure token retrieval
+  onepassword:
+    cli:
+      enabled: true
+      item_name: ""  # Name of your 1Password item containing Slack token (e.g., "Company - Slack API")
+      field_name: "credential"  # Field name within the item (common: "password", "credential", "api_token")
+  
+  # Photo settings
+  photo_size: "512"  # Slack photo size (72, 192, 512, 1024)
+  photo_storage: "./photos"  # Local storage for profile photos
+
 # File paths and storage
 paths:
   download_temp: "./temp"  # Temporary folder for downloads
