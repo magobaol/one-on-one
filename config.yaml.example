@@ -18,6 +18,13 @@ slack:
   photo_size: "512"  # Slack photo size (72, 192, 512, 1024)
   photo_storage: "./photos"  # Local storage for profile photos
 
+# OmniFocus settings
+omnifocus:
+  # Method: applescript can create tags without tasks, callback_url requires a task
+  method: "applescript"  # "applescript", "callback_url", or "api"
+  tag_id: ""  # OmniFocus tag ID for the parent tag - get this from "Copy as Link"
+  create_task: false  # If true, create a setup task; if false, just create the tag
+
 # File paths and storage
 paths:
   download_temp: "./temp"  # Temporary folder for downloads

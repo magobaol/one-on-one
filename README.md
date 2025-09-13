@@ -6,6 +6,7 @@ A Python script to automate the workflow for managing one-on-one meetings with c
 
 - **Secure token management**: Retrieves Slack API tokens from 1Password CLI
 - **Slack integration**: Downloads colleague profile photos with pagination support
+- **OmniFocus integration**: Creates hierarchical tags using AppleScript automation
 - **Photo management**: Organizes profile photos with proper naming and storage
 - **Configuration management**: YAML-based configuration system
 - **Command-line interface**: Structured CLI for colleague setup
@@ -25,6 +26,7 @@ A Python script to automate the workflow for managing one-on-one meetings with c
    
 3. **Configure your settings in `config.yaml`:**
    - **Slack API**: Set `slack.onepassword.cli.item_name` to your Slack API token item
+   - **OmniFocus**: Set `omnifocus.tag_id` to your parent tag ID (get from "Copy as Link")
    - **Photo settings**: Configure photo size and storage location
    - **Logging**: Adjust logging levels if needed
    - **Paths**: Configure download paths
@@ -46,6 +48,7 @@ This will:
 1. Securely retrieve your Slack API token from 1Password
 2. Look up the colleague in your Slack workspace 
 3. Download their profile photo to local storage
+4. Create a hierarchical tag in OmniFocus under your specified parent tag
 
 ## Configuration
 
@@ -54,10 +57,12 @@ This will:
 Edit `config.yaml` (created from the template) to set:
 
 - **Slack API**: `slack.onepassword.cli.item_name` - Name of your 1Password item containing Slack token
+- **OmniFocus**: `omnifocus.tag_id` - Parent tag ID where colleague tags will be created
 
 ### Optional Settings
 
 - **Photo settings**: `slack.photo_size` and `slack.photo_storage`
+- **OmniFocus method**: `omnifocus.method` and `omnifocus.create_task`
 - **Logging levels**: `logging.level`
 - **Download temp folder**: `paths.download_temp`
 
@@ -69,4 +74,5 @@ Edit `config.yaml` (created from the template) to set:
 
 - Python 3.7+
 - 1Password CLI
+- OmniFocus (for tag creation)
 - Active Slack workspace access

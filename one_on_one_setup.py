@@ -15,6 +15,7 @@ from typing import Dict, Any
 from lib.onepassword import OnePasswordClient
 from lib.slack import SlackClient
 from lib.photo_manager import PhotoManager
+from lib.omnifocus import OmniFocusClient
 
 
 class OneOnOneSetup:
@@ -29,6 +30,7 @@ class OneOnOneSetup:
         # Initialize service clients
         self.onepassword_client = OnePasswordClient()
         self.photo_manager = PhotoManager(self.config)
+        self.omnifocus_client = OmniFocusClient(self.config)
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -66,6 +68,19 @@ class OneOnOneSetup:
         """
         return self.photo_manager.download_from_slack(slack_client, name, slack_handle)
     
+    def _create_omnifocus_tag(self, name: str, slack_handle: str) -> bool:
+        """
+        Create an OmniFocus tag for the colleague.
+        
+        Args:
+            name: Colleague's full name
+            slack_handle: Slack username (without @)
+            
+        Returns:
+            True if tag was created successfully, False otherwise
+        """
+        return self.omnifocus_client.create_colleague_tag(name, slack_handle)
+    
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """
         Main method to set up everything for a new colleague.
@@ -90,8 +105,17 @@ class OneOnOneSetup:
                 if not photo_success:
                     self.logger.warning("Failed to download profile photo, continuing anyway...")
             
+            # Step 3: Create OmniFocus tag
+            if dry_run:
+                tag_info = self.omnifocus_client.get_tag_info(name)
+                self.logger.info(f"[DRY-RUN] Would create OmniFocus tag: {tag_info['tag_name']}")
+                omnifocus_success = True
+            else:
+                omnifocus_success = self._create_omnifocus_tag(name, slack_handle)
+                if not omnifocus_success:
+                    self.logger.warning("Failed to create OmniFocus tag, continuing anyway...")
+            
             # TODO: Additional integrations will be added in subsequent commits
-            # - OmniFocus tag creation
             # - Obsidian note creation
             # - Keyboard Maestro macro setup
             
