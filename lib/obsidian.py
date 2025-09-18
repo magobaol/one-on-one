@@ -7,6 +7,8 @@ This module handles creating colleague notes and managing photos within an Obsid
 import os
 import logging
 import shutil
+import subprocess
+import urllib.parse
 from typing import Dict, Any
 from .output_manager import OutputManager
 
@@ -31,12 +33,14 @@ class ObsidianClient:
         """
         self.config = config.get('obsidian', {})
         self.output_manager = output_manager
+        self.logger = logging.getLogger(__name__)
         
         # Vault configuration
         self.vault_path = os.path.expanduser(self.config.get('vault_path', ''))
         self.people_folder = self.config.get('people_folder', '80 Spaces/people')
         
-        self.logger = logging.getLogger(__name__)
+        # Extract vault name from path for URI
+        self.vault_name = os.path.basename(self.vault_path)
         
         # Validate vault path
         if not self.vault_path:
@@ -48,7 +52,7 @@ class ObsidianClient:
     
     def create_colleague_note(self, colleague_name: str, slack_handle: str) -> bool:
         """
-        Create a note and copy photo for a colleague in the Obsidian vault.
+        Create a note and copy photo for a colleague using Obsidian URI.
         
         Args:
             colleague_name: Full name of the colleague
@@ -60,17 +64,16 @@ class ObsidianClient:
         try:
             self.logger.info(f"Creating Obsidian note for {colleague_name}")
             
-            # Create person folder
+            # Create person folder and copy photo
             person_folder = self._get_person_folder_path(colleague_name)
             self._ensure_folder_exists(person_folder)
             
-            # Copy photo to person folder
             photo_success = self._copy_photo_to_vault(colleague_name, person_folder)
             if not photo_success:
                 self.logger.warning("Failed to copy photo, continuing with note creation...")
             
-            # Create the note
-            note_success = self._create_note_file(colleague_name, person_folder)
+            # Create note using Obsidian URI
+            note_success = self._create_note_via_uri(colleague_name, slack_handle)
             
             if note_success:
                 self.logger.info(f"✅ Created Obsidian note: {colleague_name}")
@@ -128,67 +131,66 @@ class ObsidianClient:
             self.logger.error(f"Failed to copy photo for {colleague_name}: {e}")
             return False
     
-    def _create_note_file(self, colleague_name: str, person_folder: str) -> bool:
+    def _create_note_via_uri(self, colleague_name: str, slack_handle: str) -> bool:
         """
-        Create the Markdown note file for the colleague.
+        Create a note using Obsidian URI, which handles duplicates and opens the note automatically.
         
         Args:
             colleague_name: Full name of the colleague
-            person_folder: Path to the person's folder in the vault
+            slack_handle: Slack username (without @)
             
         Returns:
             True if note was created successfully, False otherwise
         """
         try:
-            # Generate note filename (handle conflicts)
-            note_filename = self._get_unique_note_filename(colleague_name, person_folder)
-            note_path = os.path.join(person_folder, note_filename)
+            # Construct note path within vault - encode everything including slashes for 'file' parameter
+            raw_note_path = f"{self.people_folder}/{colleague_name}/{colleague_name}"
+            
+            # Encode everything including slashes for the 'file' parameter
+            encoded_note_path = urllib.parse.quote(raw_note_path, safe='')
             
             # Create note content
-            photo_link = f"![[{colleague_name}.jpg|200]]"
-            note_content = f"# {colleague_name}\n\n{photo_link}\n"
+            note_content = self._generate_note_content(colleague_name, slack_handle)
             
-            # Write the note
-            with open(note_path, 'w', encoding='utf-8') as f:
-                f.write(note_content)
+            # Properly encode other URI parameters
+            encoded_vault = urllib.parse.quote(self.vault_name)
+            encoded_content = urllib.parse.quote(note_content)
             
-            self.logger.debug(f"Created note: {note_path}")
+            # Construct Obsidian URI with 'file' parameter and fully encoded path
+            obsidian_uri = f"obsidian://new?vault={encoded_vault}&file={encoded_note_path}&content={encoded_content}"
+            
+            self.logger.debug(f"Opening Obsidian URI for note: {colleague_name}")
+            
+            # Open the URI (this will create and open the note in Obsidian)
+            subprocess.run(['open', obsidian_uri], timeout=10, check=True)
+            
+            self.logger.debug(f"Note created via Obsidian URI")
             return True
             
+        except subprocess.TimeoutExpired:
+            self.logger.error("Timeout while opening Obsidian URI")
+            return False
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Failed to open Obsidian URI: {e}")
+            return False
         except Exception as e:
-            self.logger.error(f"Failed to create note file for {colleague_name}: {e}")
+            self.logger.error(f"Error creating note via URI: {e}")
             return False
     
-    def _get_unique_note_filename(self, colleague_name: str, person_folder: str) -> str:
+    def _generate_note_content(self, colleague_name: str, slack_handle: str) -> str:
         """
-        Get a unique filename for the note, handling conflicts by appending (1), (2), etc.
+        Generate the same simple note content as before.
         
         Args:
             colleague_name: Full name of the colleague
-            person_folder: Path to the person's folder in the vault
+            slack_handle: Slack username (without @) - unused but kept for compatibility
             
         Returns:
-            Unique filename for the note
+            Simple note content as markdown (same as original)
         """
-        base_filename = f"{colleague_name}.md"
-        note_path = os.path.join(person_folder, base_filename)
+        # Create the same simple content as the original implementation
+        photo_link = f"![[{colleague_name}.jpg|200]]"
+        note_content = f"# {colleague_name}\n\n{photo_link}\n"
         
-        # If file doesn't exist, use the base name
-        if not os.path.exists(note_path):
-            return base_filename
-        
-        # Find next available number
-        counter = 1
-        while True:
-            numbered_filename = f"{colleague_name} ({counter}).md"
-            numbered_path = os.path.join(person_folder, numbered_filename)
-            
-            if not os.path.exists(numbered_path):
-                self.logger.info(f"Note already exists, using: {numbered_filename}")
-                return numbered_filename
-                
-            counter += 1
-            
-            # Safety check to prevent infinite loop
-            if counter > 100:
-                raise ValueError(f"Too many existing notes for {colleague_name}")
+        return note_content
+    
