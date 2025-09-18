@@ -108,7 +108,13 @@ class OneOnOneSetup:
         Returns:
             True if photo was downloaded successfully, False otherwise
         """
-        return self.photo_manager.download_from_slack(slack_client, name, slack_handle)
+        success = self.photo_manager.download_from_slack(slack_client, name, slack_handle)
+        
+        # Open the colleague folder in Finder right after it's created
+        if success:
+            self._open_colleague_folder(name)
+        
+        return success
     
     def _create_omnifocus_tag(self, name: str, slack_handle: str) -> bool:
         """
@@ -191,6 +197,21 @@ class OneOnOneSetup:
             return True
             
         return self.stream_deck_client.create_colleague_action(name, km_macro_uuid)
+    
+    def _open_colleague_folder(self, name: str) -> None:
+        """
+        Open the colleague's folder in Finder.
+        
+        Args:
+            name: Colleague's full name
+        """
+        try:
+            import subprocess
+            colleague_folder = self.output_manager.get_colleague_folder(name)
+            subprocess.run(['open', colleague_folder], timeout=5)
+            self.logger.info(f"📂 Opened colleague folder in Finder: {name}")
+        except Exception as e:
+            self.logger.debug(f"Could not open folder automatically: {e}")
     
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """

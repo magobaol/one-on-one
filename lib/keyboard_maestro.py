@@ -673,10 +673,6 @@ class KeyboardMaestroClient:
             self.logger.info("   • Parameters automatically replaced")
             self.logger.info("   • Ready to use immediately after import")
             
-            # Open the folder containing the file
-            subprocess.run(['open', '-R', kmmacros_file], check=False)
-            self.logger.info("📂 Opened folder in Finder")
-            
         except Exception as e:
             self.logger.error(f"Error showing import instructions: {e}")
     

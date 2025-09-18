@@ -506,10 +506,3 @@ class OmniFocusClient:
         self.logger.info("   • Custom icon from profile photo")
         self.logger.info("   • All other settings from the Cristian template")
         
-        # Optionally open the folder for the user
-        try:
-            import subprocess
-            subprocess.run(['open', '-R', output_file], timeout=5)
-            self.logger.info("📂 Opened perspective folder in Finder")
-        except Exception as e:
-            self.logger.debug(f"Could not open folder automatically: {e}")
