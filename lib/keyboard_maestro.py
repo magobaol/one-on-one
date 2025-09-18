@@ -676,6 +676,82 @@ class KeyboardMaestroClient:
         except Exception as e:
             self.logger.error(f"Error showing import instructions: {e}")
     
+    def get_macro_file_path(self, colleague_name: str) -> str:
+        """
+        Get the path to the colleague's .kmmacros file for later import.
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            Path to the .kmmacros file
+        """
+        safe_name = colleague_name.replace(' ', '_').replace('/', '_')
+        colleague_folder = self.output_manager.get_colleague_folder(colleague_name)
+        return os.path.join(colleague_folder, f"One-to-One - {safe_name}.kmmacros")
+    
+    def import_and_open_macro(self, colleague_name: str) -> bool:
+        """
+        Import the Keyboard Maestro macro and open it (final step).
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get the macro file path
+            kmmacros_file = self.get_macro_file_path(colleague_name)
+            
+            if not os.path.exists(kmmacros_file):
+                self.logger.warning(f"Macro file not found: {kmmacros_file}")
+                return False
+            
+            self.logger.info("")
+            self.logger.info("🚀 FINAL STEP: Importing and opening Keyboard Maestro macro...")
+            
+            # Step 1: Automatically import the macro by opening the .kmmacros file
+            self.logger.info("📥 Auto-importing macro into Keyboard Maestro...")
+            subprocess.run(['open', kmmacros_file], timeout=10, check=True)
+            
+            # Give Keyboard Maestro a moment to import the macro
+            import time
+            time.sleep(2)
+            
+            # Step 2: Open Keyboard Maestro to show the imported macro
+            self.logger.info("🎯 Opening Keyboard Maestro...")
+            subprocess.run(['open', '-a', 'Keyboard Maestro'], timeout=5, check=True)
+            
+            self.logger.info("✅ Macro imported and Keyboard Maestro opened successfully!")
+            return True
+            
+        except subprocess.TimeoutExpired:
+            self.logger.warning("⚠️  Timeout while importing macro - Keyboard Maestro may be slow to respond")
+            self._show_manual_macro_instructions(colleague_name)
+            return False
+        except subprocess.CalledProcessError as e:
+            self.logger.warning(f"⚠️  Failed to auto-import macro: {e}")
+            self._show_manual_macro_instructions(colleague_name)
+            return False
+        except Exception as e:
+            self.logger.warning(f"⚠️  Error during macro import: {e}")
+            self._show_manual_macro_instructions(colleague_name)
+            return False
+    
+    def _show_manual_macro_instructions(self, colleague_name: str) -> None:
+        """Show manual import instructions as fallback."""
+        try:
+            kmmacros_file = self.get_macro_file_path(colleague_name)
+            self.logger.info("")
+            self.logger.info("📋 MANUAL MACRO IMPORT INSTRUCTIONS:")
+            self.logger.info("   1. Open Finder and navigate to the macro file")
+            self.logger.info(f"   2. Double-click the '{os.path.basename(kmmacros_file)}' file")
+            self.logger.info("   3. Keyboard Maestro will open and import automatically")
+            self.logger.info(f"   4. The macro 'One-to-One - {colleague_name}' will be added to the group")
+        except Exception as e:
+            self.logger.debug(f"Could not show macro instructions: {e}")
+    
     def _convert_image_to_tiff_base64(self, image_path: str) -> Optional[str]:
         """
         Convert image to TIFF format and encode as base64 for Keyboard Maestro CustomIconData.

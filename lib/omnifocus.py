@@ -9,6 +9,7 @@ import os
 import subprocess
 import urllib.parse
 import logging
+import time
 from typing import Dict, Any, Optional
 from .perspective_generator import PerspectiveGenerator
 from .output_manager import OutputManager
@@ -37,6 +38,7 @@ class OmniFocusClient:
         self.tag_id = self.config.get('tag_id', '')
         self.tag_url = f"omnifocus:///tag/{self.tag_id}" if self.tag_id else ''
         self.create_task = self.config.get('create_task', False)
+        self.output_manager = output_manager
         
         self.logger = logging.getLogger(__name__)
         
@@ -505,4 +507,78 @@ class OmniFocusClient:
         self.logger.info("   • Availability: Available and Waiting tasks")
         self.logger.info("   • Custom icon from profile photo")
         self.logger.info("   • All other settings from the Cristian template")
+        
+    def get_perspective_folder(self, colleague_name: str) -> str:
+        """
+        Get the path to the colleague's perspective folder for later import.
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            Path to the .ofocus-perspective folder
+        """
+        return self.output_manager.get_perspective_folder(colleague_name)
+    
+    def import_and_open_perspective(self, colleague_name: str) -> bool:
+        """
+        Import the OmniFocus perspective and open it (final step).
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get the perspective folder path
+            perspective_folder = self.get_perspective_folder(colleague_name)
+            
+            if not os.path.exists(perspective_folder):
+                self.logger.warning(f"Perspective folder not found: {perspective_folder}")
+                return False
+            
+            self.logger.info("")
+            self.logger.info("🚀 FINAL STEP: Importing and opening OmniFocus perspective...")
+            
+            # Step 1: Automatically import the perspective by opening the .ofocus-perspective folder
+            self.logger.info("📥 Auto-importing perspective into OmniFocus...")
+            subprocess.run(['open', perspective_folder], timeout=10, check=True)
+            
+            # Give OmniFocus a moment to import the perspective
+            time.sleep(2)
+            
+            # Step 2: Open the specific perspective using URL scheme
+            perspective_url = f"omnifocus:///perspective/{colleague_name}"
+            self.logger.info(f"🎯 Opening perspective: {colleague_name}")
+            subprocess.run(['open', perspective_url], timeout=5, check=True)
+            
+            self.logger.info("✅ Perspective imported and opened successfully!")
+            return True
+            
+        except subprocess.TimeoutExpired:
+            self.logger.warning("⚠️  Timeout while importing perspective - OmniFocus may be slow to respond")
+            self._show_manual_perspective_instructions(colleague_name)
+            return False
+        except subprocess.CalledProcessError as e:
+            self.logger.warning(f"⚠️  Failed to auto-import perspective: {e}")
+            self._show_manual_perspective_instructions(colleague_name)
+            return False
+        except Exception as e:
+            self.logger.warning(f"⚠️  Error during perspective import: {e}")
+            self._show_manual_perspective_instructions(colleague_name)
+            return False
+    
+    def _show_manual_perspective_instructions(self, colleague_name: str) -> None:
+        """Show manual import instructions as fallback."""
+        try:
+            perspective_folder = self.get_perspective_folder(colleague_name)
+            self.logger.info("")
+            self.logger.info("📋 MANUAL PERSPECTIVE IMPORT INSTRUCTIONS:")
+            self.logger.info("   1. Open Finder and navigate to the perspectives folder")
+            self.logger.info(f"   2. Double-click the '{os.path.basename(perspective_folder)}' folder")
+            self.logger.info("   3. OmniFocus will open and import the perspective automatically")
+            self.logger.info(f"   4. The '{colleague_name}' perspective will appear in your perspectives list")
+        except Exception as e:
+            self.logger.debug(f"Could not show perspective instructions: {e}")
         

@@ -26,6 +26,7 @@ Key Features:
 import json
 import logging
 import os
+import subprocess
 import uuid
 import zipfile
 import tempfile
@@ -413,3 +414,80 @@ class StreamDeckClient:
         self.logger.info(f"📁 To import: Double-click the .streamDeckAction file")
         self.logger.info(f"🔗 The action will trigger the Keyboard Maestro macro for {colleague_name}")
         self.logger.info(f"💡 Make sure to import the corresponding .kmmacros file first!")
+    
+    def get_action_file_path(self, colleague_name: str) -> str:
+        """
+        Get the path to the colleague's .streamDeckAction file for later import.
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            Path to the .streamDeckAction file
+        """
+        safe_name = colleague_name.replace(' ', '_').replace('/', '_')
+        colleague_folder = self.output_manager.get_colleague_folder(colleague_name)
+        return os.path.join(colleague_folder, f"One-to-One - {safe_name}.streamDeckAction")
+    
+    def import_and_open_action(self, colleague_name: str) -> bool:
+        """
+        Import the Stream Deck action and open Stream Deck app (final step).
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get the action file path
+            action_file = self.get_action_file_path(colleague_name)
+            
+            if not os.path.exists(action_file):
+                self.logger.warning(f"Stream Deck action file not found: {action_file}")
+                return False
+            
+            self.logger.info("")
+            self.logger.info("🚀 FINAL STEP: Importing and opening Stream Deck action...")
+            
+            # Step 1: Automatically import the action by opening the .streamDeckAction file
+            self.logger.info("📥 Auto-importing action into Stream Deck...")
+            subprocess.run(['open', action_file], timeout=10, check=True)
+            
+            # Give Stream Deck a moment to import the action
+            import time
+            time.sleep(2)
+            
+            # Step 2: Open Stream Deck app to show the imported action
+            self.logger.info("🎯 Opening Stream Deck app...")
+            subprocess.run(['open', '-a', 'Stream Deck'], timeout=5, check=True)
+            
+            self.logger.info("✅ Action imported and Stream Deck opened successfully!")
+            return True
+            
+        except subprocess.TimeoutExpired:
+            self.logger.warning("⚠️  Timeout while importing action - Stream Deck may be slow to respond")
+            self._show_manual_action_instructions(colleague_name)
+            return False
+        except subprocess.CalledProcessError as e:
+            self.logger.warning(f"⚠️  Failed to auto-import action: {e}")
+            self._show_manual_action_instructions(colleague_name)
+            return False
+        except Exception as e:
+            self.logger.warning(f"⚠️  Error during action import: {e}")
+            self._show_manual_action_instructions(colleague_name)
+            return False
+    
+    def _show_manual_action_instructions(self, colleague_name: str) -> None:
+        """Show manual import instructions as fallback."""
+        try:
+            action_file = self.get_action_file_path(colleague_name)
+            self.logger.info("")
+            self.logger.info("📋 MANUAL STREAM DECK IMPORT INSTRUCTIONS:")
+            self.logger.info("   1. Open Finder and navigate to the action file")
+            self.logger.info(f"   2. Double-click the '{os.path.basename(action_file)}' file")
+            self.logger.info("   3. Stream Deck will open and import automatically")
+            self.logger.info(f"   4. The action 'One-to-One - {colleague_name}' will be added to your deck")
+            self.logger.info("   5. The action will trigger the corresponding Keyboard Maestro macro")
+        except Exception as e:
+            self.logger.debug(f"Could not show action instructions: {e}")

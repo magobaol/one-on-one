@@ -6,6 +6,7 @@ This script automates the workflow for managing one-on-one meetings with colleag
 """
 
 import sys
+import os
 import argparse
 import yaml
 import logging
@@ -213,6 +214,7 @@ class OneOnOneSetup:
         except Exception as e:
             self.logger.debug(f"Could not open folder automatically: {e}")
     
+    
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """
         Main method to set up everything for a new colleague.
@@ -284,6 +286,36 @@ class OneOnOneSetup:
                 stream_deck_success = self._create_stream_deck_action(name, km_macro_uuid)
                 if not stream_deck_success:
                     self.logger.warning("Failed to create Stream Deck action, continuing anyway...")
+            
+            # Step 8: Import and open OmniFocus perspective (final step)
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would import and open OmniFocus perspective: {name}")
+            else:
+                # Only import and open if we successfully created the perspective
+                if omnifocus_perspective_success:
+                    self.omnifocus_client.import_and_open_perspective(name)
+                else:
+                    self.logger.info("Skipping perspective import - perspective was not created successfully")
+            
+            # Step 9: Import and open Keyboard Maestro macro (final step)
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would import and open Keyboard Maestro macro: One-to-One - {name}")
+            else:
+                # Only import and open if we successfully created the macro
+                if keyboard_maestro_success and self.keyboard_maestro_client:
+                    self.keyboard_maestro_client.import_and_open_macro(name)
+                else:
+                    self.logger.info("Skipping macro import - macro was not created successfully")
+            
+            # Step 10: Import and open Stream Deck action (final step)
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would import and open Stream Deck action: One-to-One - {name}")
+            else:
+                # Only import and open if we successfully created the action
+                if stream_deck_success and self.stream_deck_client:
+                    self.stream_deck_client.import_and_open_action(name)
+                else:
+                    self.logger.info("Skipping Stream Deck import - action was not created successfully")
             
             self.logger.info("Setup completed successfully!")
             
