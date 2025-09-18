@@ -18,6 +18,7 @@ from lib.photo_manager import PhotoManager
 from lib.omnifocus import OmniFocusClient
 from lib.output_manager import OutputManager
 from lib.obsidian import ObsidianClient
+from lib.keyboard_maestro import KeyboardMaestroClient
 
 
 class OneOnOneSetup:
@@ -35,6 +36,7 @@ class OneOnOneSetup:
         self.photo_manager = PhotoManager(self.config, self.output_manager)
         self.omnifocus_client = OmniFocusClient(self.config, self.output_manager)
         self.obsidian_client = self._initialize_obsidian_client()
+        self.keyboard_maestro_client = self._initialize_keyboard_maestro_client()
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -67,6 +69,18 @@ class OneOnOneSetup:
             return ObsidianClient(self.config, self.output_manager)
         except Exception as e:
             self.logger.warning(f"Obsidian integration disabled due to configuration error: {e}")
+            return None
+    
+    def _initialize_keyboard_maestro_client(self) -> Optional['KeyboardMaestroClient']:
+        """Initialize Keyboard Maestro client if configuration is available."""
+        try:
+            if 'keyboard_maestro' not in self.config:
+                self.logger.info("Keyboard Maestro integration disabled (no configuration)")
+                return None
+            
+            return KeyboardMaestroClient(self.config, self.output_manager)
+        except Exception as e:
+            self.logger.warning(f"Keyboard Maestro integration disabled due to configuration error: {e}")
             return None
     
     
@@ -126,6 +140,23 @@ class OneOnOneSetup:
             
         return self.obsidian_client.create_colleague_note(name, slack_handle)
     
+    def _create_keyboard_maestro_macro(self, name: str, slack_handle: str) -> bool:
+        """
+        Create a Keyboard Maestro macro for the colleague.
+        
+        Args:
+            name: Colleague's full name
+            slack_handle: Colleague's Slack username
+            
+        Returns:
+            True if macro was created successfully, False otherwise
+        """
+        if not self.keyboard_maestro_client:
+            self.logger.info("Keyboard Maestro integration disabled - skipping macro creation")
+            return True
+            
+        return self.keyboard_maestro_client.create_colleague_macro(name, slack_handle)
+    
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """
         Main method to set up everything for a new colleague.
@@ -178,8 +209,14 @@ class OneOnOneSetup:
                 if not obsidian_success:
                     self.logger.warning("Failed to create Obsidian note, continuing anyway...")
             
-            # TODO: Additional integrations will be added in subsequent commits  
-            # - Keyboard Maestro macro setup
+            # Step 6: Create Keyboard Maestro macro
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would create Keyboard Maestro macro: One-to-One - {name}")
+                keyboard_maestro_success = True
+            else:
+                keyboard_maestro_success = self._create_keyboard_maestro_macro(name, slack_handle)
+                if not keyboard_maestro_success:
+                    self.logger.warning("Failed to create Keyboard Maestro macro, continuing anyway...")
             
             self.logger.info("Setup completed successfully!")
             

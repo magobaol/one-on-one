@@ -33,6 +33,7 @@ obsidian:
   vault_path: ""  # Full path to your Obsidian vault (e.g., "/Users/username/Documents/MyVault")
   people_folder: "80 Spaces/people"  # Folder path within vault for colleague notes
 
-# File paths and storage
-paths:
-  download_temp: "./temp"  # Temporary folder for downloads
+# Keyboard Maestro settings
+keyboard_maestro:
+  template_uuid: "B8D72CC1-7B5F-4F04-8F08-5A0A6B89B6C7"  # UUID of the template macro to duplicate
+  template_name: "-One-to-One - Template"  # Name of the template macro

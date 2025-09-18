@@ -1,6 +1,6 @@
 # One-on-One Meeting Setup Automation
 
-A Python script to automate the workflow for managing one-on-one meetings with colleagues, integrating 1Password, Slack, OmniFocus, and Obsidian for complete automation.
+A Python script to automate the workflow for managing one-on-one meetings with colleagues, integrating 1Password, Slack, OmniFocus, Obsidian, and Keyboard Maestro for complete automation.
 
 ## Features
 
@@ -11,6 +11,7 @@ A Python script to automate the workflow for managing one-on-one meetings with c
   - Generates complete perspectives with custom icons
   - Uses XML templates for reliable perspective creation
 - **Obsidian integration**: Creates structured notes with profile photos in configurable vaults
+- **Keyboard Maestro integration**: Generates complete macro files with parameter replacement and custom icons
 - **Organized output structure**: Creates colleague-specific folders for all generated content
 - **Photo management**: Automatic image processing and format conversion (JPEG/PNG)
 - **Configuration management**: YAML-based configuration with graceful feature disabling
@@ -59,6 +60,7 @@ This will:
 4. Create a hierarchical tag in OmniFocus under your specified parent tag
 5. Generate a complete OmniFocus perspective with custom icon from profile photo
 6. Create an Obsidian note with the colleague's photo in your configured vault
+7. Generate a complete Keyboard Maestro macro with parameters replaced and custom icon
 
 ## Configuration
 
@@ -68,6 +70,9 @@ Edit `config.yaml` (created from the template) to set:
 
 - **Slack API**: `slack.onepassword.cli.item_name` - Name of your 1Password item containing Slack token
 - **OmniFocus**: `omnifocus.tag_id` - Parent tag ID where colleague tags will be created
+- **Keyboard Maestro**: Configure your template macro details:
+  - `keyboard_maestro.template_uuid` - UUID of your template macro (get via "Copy UUID" in Keyboard Maestro)
+  - `keyboard_maestro.template_name` - Name of your template macro (for identification)
 
 ### Optional Settings
 
@@ -99,6 +104,16 @@ When configured, the script creates structured notes in your Obsidian vault:
 - **Format**: `![[Colleague Name.jpg|200]]` for proper Obsidian display
 - **Conflict handling**: Automatic numbering for duplicate notes
 
+### Keyboard Maestro Integration
+
+The script generates complete macro files using an export/modify/import approach:
+
+- **Fully configurable template**: Uses your specified template macro (configured via `template_uuid` and `template_name`)
+- **Parameter replacement**: Automatically replaces `#obsidianNoteName` and `#ofPerspectiveName` placeholders
+- **Custom icons**: Embeds colleague's profile photo as TIFF icon data
+- **Import process**: Double-click the generated `.kmmacros` file to import
+- **Ready to use**: Macro is added to the same group as your template with all parameters configured
+
 ### File Organization
 
 The script creates an organized folder structure for all generated content:
@@ -107,9 +122,10 @@ The script creates an organized folder structure for all generated content:
 output_folder/
 ├── Colleague_Name/
 │   ├── profile_photo.jpg
-│   └── Colleague_Name.ofocus-perspective/
-│       ├── Info-v3.plist
-│       └── icon.png
+│   ├── Colleague_Name.ofocus-perspective/
+│   │   ├── Info-v3.plist
+│   │   └── icon.png
+│   └── One-to-One - Colleague_Name.kmmacros
 ```
 
 - **Colleague-specific folders**: Each person gets their own dedicated folder
@@ -122,6 +138,7 @@ output_folder/
 - Python 3.7+
 - 1Password CLI (for secure token management)
 - OmniFocus (for tag and perspective creation)
+- Keyboard Maestro (for macro generation)
 - Active Slack workspace access
 - Pillow (for image processing - installed via requirements.txt)
 - Obsidian (optional - for note creation)
