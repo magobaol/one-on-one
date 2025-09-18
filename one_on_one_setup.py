@@ -10,13 +10,14 @@ import argparse
 import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from lib.onepassword import OnePasswordClient
 from lib.slack import SlackClient
 from lib.photo_manager import PhotoManager
 from lib.omnifocus import OmniFocusClient
 from lib.output_manager import OutputManager
+from lib.obsidian import ObsidianClient
 
 
 class OneOnOneSetup:
@@ -33,6 +34,7 @@ class OneOnOneSetup:
         self.output_manager = OutputManager(self.config)
         self.photo_manager = PhotoManager(self.config, self.output_manager)
         self.omnifocus_client = OmniFocusClient(self.config, self.output_manager)
+        self.obsidian_client = self._initialize_obsidian_client()
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -54,6 +56,18 @@ class OneOnOneSetup:
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         self.logger = logging.getLogger(__name__)
+    
+    def _initialize_obsidian_client(self) -> Optional['ObsidianClient']:
+        """Initialize Obsidian client if configuration is available."""
+        try:
+            if 'obsidian' not in self.config or not self.config['obsidian'].get('vault_path'):
+                self.logger.info("Obsidian integration disabled (no vault_path configured)")
+                return None
+            
+            return ObsidianClient(self.config, self.output_manager)
+        except Exception as e:
+            self.logger.warning(f"Obsidian integration disabled due to configuration error: {e}")
+            return None
     
     
     def _download_colleague_photo(self, slack_client: SlackClient, name: str, slack_handle: str) -> bool:
@@ -94,6 +108,23 @@ class OneOnOneSetup:
             True if perspective was created successfully, False otherwise
         """
         return self.omnifocus_client.create_colleague_perspective(name)
+    
+    def _create_obsidian_note(self, name: str, slack_handle: str) -> bool:
+        """
+        Create an Obsidian note for the colleague.
+        
+        Args:
+            name: Colleague's full name
+            slack_handle: Colleague's Slack username
+            
+        Returns:
+            True if note was created successfully, False otherwise
+        """
+        if not self.obsidian_client:
+            self.logger.info("Obsidian integration disabled - skipping note creation")
+            return True
+            
+        return self.obsidian_client.create_colleague_note(name, slack_handle)
     
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """
@@ -138,8 +169,16 @@ class OneOnOneSetup:
                 if not omnifocus_perspective_success:
                     self.logger.warning("Failed to create OmniFocus perspective, continuing anyway...")
             
-            # TODO: Additional integrations will be added in subsequent commits
-            # - Obsidian note creation
+            # Step 5: Create Obsidian note
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would create Obsidian note: {name}")
+                obsidian_success = True
+            else:
+                obsidian_success = self._create_obsidian_note(name, slack_handle)
+                if not obsidian_success:
+                    self.logger.warning("Failed to create Obsidian note, continuing anyway...")
+            
+            # TODO: Additional integrations will be added in subsequent commits  
             # - Keyboard Maestro macro setup
             
             self.logger.info("Setup completed successfully!")
