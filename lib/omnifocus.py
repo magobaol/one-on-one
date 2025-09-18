@@ -11,6 +11,7 @@ import urllib.parse
 import logging
 from typing import Dict, Any, Optional
 from .perspective_generator import PerspectiveGenerator
+from .output_manager import OutputManager
 
 
 class OmniFocusClient:
@@ -23,12 +24,13 @@ class OmniFocusClient:
     - Checking if tags already exist
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], output_manager: OutputManager):
         """
-        Initialize OmniFocus client with configuration.
+        Initialize OmniFocus client with configuration and output manager.
         
         Args:
             config: Dictionary containing OmniFocus configuration
+            output_manager: OutputManager instance for organized file storage
         """
         self.config = config.get('omnifocus', {})
         self.method = self.config.get('method', 'applescript')
@@ -38,8 +40,8 @@ class OmniFocusClient:
         
         self.logger = logging.getLogger(__name__)
         
-        # Initialize perspective generator
-        self.perspective_generator = PerspectiveGenerator()
+        # Initialize perspective generator with output manager
+        self.perspective_generator = PerspectiveGenerator(output_manager)
         
         # Validate configuration
         if self.method not in ['applescript', 'callback_url', 'api']:
@@ -98,8 +100,7 @@ class OmniFocusClient:
             output_file = self.perspective_generator.create_colleague_perspective_plist(
                 colleague_name=colleague_name,
                 colleague_tag_id=colleague_tag_id,
-                template_path=template_path,
-                output_dir="./perspectives"
+                template_path=template_path
             )
             
             # Show instructions to user

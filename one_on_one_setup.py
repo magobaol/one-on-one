@@ -16,6 +16,7 @@ from lib.onepassword import OnePasswordClient
 from lib.slack import SlackClient
 from lib.photo_manager import PhotoManager
 from lib.omnifocus import OmniFocusClient
+from lib.output_manager import OutputManager
 
 
 class OneOnOneSetup:
@@ -29,8 +30,9 @@ class OneOnOneSetup:
         
         # Initialize service clients
         self.onepassword_client = OnePasswordClient()
-        self.photo_manager = PhotoManager(self.config)
-        self.omnifocus_client = OmniFocusClient(self.config)
+        self.output_manager = OutputManager(self.config)
+        self.photo_manager = PhotoManager(self.config, self.output_manager)
+        self.omnifocus_client = OmniFocusClient(self.config, self.output_manager)
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""

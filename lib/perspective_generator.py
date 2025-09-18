@@ -12,20 +12,21 @@ import plistlib
 import os
 from typing import Dict, Any, Optional
 from pathlib import Path
+from .output_manager import OutputManager
 
 
 class PerspectiveGenerator:
     """Generates OmniFocus perspective plist files from templates."""
     
-    def __init__(self):
+    def __init__(self, output_manager: OutputManager):
+        self.output_manager = output_manager
         self.logger = logging.getLogger(__name__)
     
     def create_colleague_perspective_plist(
         self, 
         colleague_name: str, 
         colleague_tag_id: str,
-        template_path: str,
-        output_dir: str = "./perspectives"
+        template_path: str
     ) -> str:
         """
         Create a new perspective plist file for a colleague from XML template.
@@ -34,7 +35,6 @@ class PerspectiveGenerator:
             colleague_name: Name of the colleague (becomes perspective name)
             colleague_tag_id: OmniFocus tag ID for the colleague
             template_path: Path to the template XML file
-            output_dir: Directory to save the generated plist
             
         Returns:
             Path to the generated plist file
@@ -49,15 +49,8 @@ class PerspectiveGenerator:
             # Convert XML to plist data
             plist_data = self._xml_to_plist_data(processed_xml)
             
-            # Create output directory
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Generate output file path
-            safe_name = self._sanitize_filename(colleague_name)
-            output_file = os.path.join(output_dir, f"{safe_name}.ofocus-perspective", "Info-v3.plist")
-            
-            # Create perspective directory
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            # Get organized output path from output manager
+            output_file = self.output_manager.get_perspective_plist_path(colleague_name)
             
             # Write the plist file
             self._write_plist_file(output_file, plist_data)
@@ -101,12 +94,6 @@ class PerspectiveGenerator:
             return plistlib.load(io.BytesIO(xml_bytes))
         except Exception as e:
             raise ValueError(f"Failed to convert XML to plist data: {e}")
-    
-    def _sanitize_filename(self, name: str) -> str:
-        """Sanitize colleague name for use in filename."""
-        # Replace spaces and special characters with underscores
-        safe_name = ''.join(c if c.isalnum() or c in '-_' else '_' for c in name)
-        return safe_name.strip('_')
     
     def _write_plist_file(self, output_path: str, data: Dict[str, Any]) -> None:
         """Write data to plist file in binary format."""

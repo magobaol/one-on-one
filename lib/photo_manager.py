@@ -10,7 +10,8 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 from .slack import SlackClient
-from .utils import generate_photo_filename, ensure_directory_exists, get_file_size
+from .output_manager import OutputManager
+from .utils import ensure_directory_exists, get_file_size
 
 
 class PhotoManager:
@@ -24,23 +25,21 @@ class PhotoManager:
     - Error handling for network operations
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], output_manager: OutputManager):
         """
-        Initialize photo manager with configuration.
+        Initialize photo manager with configuration and output manager.
         
         Args:
-            config: Dictionary containing photo storage configuration
+            config: Dictionary containing photo configuration
+            output_manager: OutputManager instance for organized file storage
         """
         self.config = config
+        self.output_manager = output_manager
         self.slack_config = config.get('slack', {})
-        self.photo_storage = self.slack_config.get('photo_storage', './photos')
         self.photo_size = self.slack_config.get('photo_size', '512')
         
         self.logger = logging.getLogger(__name__)
-        
-        # Ensure photo storage directory exists
-        self.storage_path = ensure_directory_exists(self.photo_storage)
-        self.logger.info(f"Photo storage initialized: {self.storage_path}")
+        self.logger.info("Photo manager initialized with organized output structure")
     
     def download_from_slack(self, slack_client: SlackClient, name: str, slack_handle: str) -> bool:
         """
@@ -69,9 +68,8 @@ class PhotoManager:
                 self.logger.error(f"Could not get photo URL for @{slack_handle}")
                 return False
             
-            # Generate filename and path
-            filename = generate_photo_filename(name, slack_handle)
-            save_path = self.storage_path / filename
+            # Get organized save path from output manager
+            save_path = Path(self.output_manager.get_photo_path(name))
             
             # Download the photo
             success = self.download_photo(photo_url, save_path)
@@ -142,8 +140,7 @@ class PhotoManager:
         Returns:
             Path where the photo would be/is stored
         """
-        filename = generate_photo_filename(name, slack_handle)
-        return self.storage_path / filename
+        return Path(self.output_manager.get_photo_path(name))
     
     def photo_exists(self, name: str, slack_handle: str) -> bool:
         """
