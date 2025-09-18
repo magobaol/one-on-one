@@ -6,7 +6,6 @@ This script automates the workflow for managing one-on-one meetings with colleag
 """
 
 import sys
-import os
 import argparse
 import yaml
 import logging
