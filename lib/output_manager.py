@@ -92,6 +92,19 @@ class OutputManager:
         perspective_folder = self.get_perspective_folder(colleague_name)
         return os.path.join(perspective_folder, "Info-v3.plist")
     
+    def get_perspective_icon_path(self, colleague_name: str) -> str:
+        """
+        Get the full path to the colleague's perspective icon file.
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            Full path to the icon.png file
+        """
+        perspective_folder = self.get_perspective_folder(colleague_name)
+        return os.path.join(perspective_folder, "icon.png")
+    
     def _sanitize_folder_name(self, name: str) -> str:
         """
         Sanitize a name for use as a folder name.
@@ -159,7 +172,8 @@ class OutputManager:
             'folder': colleague_folder,
             'photo': self.get_photo_path(colleague_name),
             'perspective_folder': self.get_perspective_folder(colleague_name),
-            'perspective_plist': self.get_perspective_plist_path(colleague_name)
+            'perspective_plist': self.get_perspective_plist_path(colleague_name),
+            'perspective_icon': self.get_perspective_icon_path(colleague_name)
         }
         
         # Check which files actually exist

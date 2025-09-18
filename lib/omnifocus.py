@@ -503,6 +503,7 @@ class OmniFocusClient:
         self.logger.info("🎯 The perspective is already configured with:")
         self.logger.info(f"   • Tag filter: {colleague_name}")
         self.logger.info("   • Availability: Available and Waiting tasks")
+        self.logger.info("   • Custom icon from profile photo")
         self.logger.info("   • All other settings from the Cristian template")
         
         # Optionally open the folder for the user

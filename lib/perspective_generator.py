@@ -14,6 +14,12 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 from .output_manager import OutputManager
 
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
 
 class PerspectiveGenerator:
     """Generates OmniFocus perspective plist files from templates."""
@@ -54,6 +60,9 @@ class PerspectiveGenerator:
             
             # Write the plist file
             self._write_plist_file(output_file, plist_data)
+            
+            # Create perspective icon from profile photo
+            self._create_perspective_icon(colleague_name)
             
             self.logger.info(f"✅ Created perspective plist: {output_file}")
             self.logger.info(f"📁 To import: Double-click the .ofocus-perspective folder")
@@ -102,6 +111,42 @@ class PerspectiveGenerator:
                 plistlib.dump(data, f, fmt=plistlib.FMT_BINARY)
         except Exception as e:
             raise ValueError(f"Failed to write plist file: {e}")
+    
+    def _create_perspective_icon(self, colleague_name: str) -> None:
+        """
+        Create a perspective icon from the colleague's profile photo.
+        
+        Args:
+            colleague_name: Full name of the colleague
+        """
+        try:
+            if not PIL_AVAILABLE:
+                self.logger.warning("PIL/Pillow not available - skipping icon creation")
+                return
+            
+            # Get paths
+            photo_path = self.output_manager.get_photo_path(colleague_name)
+            icon_path = self.output_manager.get_perspective_icon_path(colleague_name)
+            
+            # Check if profile photo exists
+            if not os.path.exists(photo_path):
+                self.logger.warning(f"Profile photo not found at {photo_path} - skipping icon creation")
+                return
+            
+            # Convert and save as PNG
+            self.logger.debug(f"Creating perspective icon from {photo_path}")
+            with Image.open(photo_path) as img:
+                # Convert to RGB if necessary (handles RGBA, etc.)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Save as PNG
+                img.save(icon_path, 'PNG')
+                self.logger.info(f"✅ Created perspective icon: icon.png")
+                
+        except Exception as e:
+            # Don't fail the entire process if icon creation fails
+            self.logger.warning(f"Failed to create perspective icon: {e}")
     
     def analyze_template_tags(self, template_path: str) -> Dict[str, Any]:
         """Analyze template XML to show tag structure (for debugging)."""
