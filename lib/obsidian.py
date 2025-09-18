@@ -7,8 +7,7 @@ This module handles creating colleague notes and managing photos within an Obsid
 import os
 import logging
 import shutil
-from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from .output_manager import OutputManager
 
 
@@ -193,17 +192,3 @@ class ObsidianClient:
             # Safety check to prevent infinite loop
             if counter > 100:
                 raise ValueError(f"Too many existing notes for {colleague_name}")
-    
-    def get_vault_info(self) -> Dict[str, Any]:
-        """
-        Get information about the vault configuration.
-        
-        Returns:
-            Dictionary with vault information
-        """
-        return {
-            'vault_path': self.vault_path,
-            'people_folder': self.people_folder,
-            'full_people_path': os.path.join(self.vault_path, self.people_folder),
-            'vault_exists': os.path.exists(self.vault_path)
-        }
