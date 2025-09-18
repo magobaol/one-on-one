@@ -5,10 +5,12 @@ This module provides integration with OmniFocus using AppleScript
 to create hierarchical tags for one-on-one meetings.
 """
 
+import os
 import subprocess
 import urllib.parse
 import logging
 from typing import Dict, Any, Optional
+from .perspective_generator import PerspectiveGenerator
 
 
 class OmniFocusClient:
@@ -36,6 +38,9 @@ class OmniFocusClient:
         
         self.logger = logging.getLogger(__name__)
         
+        # Initialize perspective generator
+        self.perspective_generator = PerspectiveGenerator()
+        
         # Validate configuration
         if self.method not in ['applescript', 'callback_url', 'api']:
             raise ValueError(f"Unsupported OmniFocus method: {self.method}")
@@ -62,6 +67,50 @@ class OmniFocusClient:
             self.logger.warning(f"Could not check OmniFocus availability: {e}")
             return False
     
+    def create_colleague_perspective(self, colleague_name: str) -> bool:
+        """
+        Create an OmniFocus perspective plist file for the colleague.
+        
+        This generates a complete perspective plist file that can be imported
+        by double-clicking the .ofocus-perspective folder.
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            True if perspective plist was created successfully, False otherwise
+        """
+        try:
+            self.logger.info(f"Generating OmniFocus perspective plist for: {colleague_name}")
+            
+            # Check if we have colleague tag info
+            tag_info = self.get_tag_info(colleague_name)
+            colleague_tag_id = tag_info.get('tag_id')
+            
+            if not colleague_tag_id:
+                self.logger.error(f"No tag ID found for {colleague_name}. Create the tag first.")
+                return False
+            
+            # Template path (XML template with placeholders)
+            template_path = "resources/of-pespective.xml"
+            
+            # Generate the plist file
+            output_file = self.perspective_generator.create_colleague_perspective_plist(
+                colleague_name=colleague_name,
+                colleague_tag_id=colleague_tag_id,
+                template_path=template_path,
+                output_dir="./perspectives"
+            )
+            
+            # Show instructions to user
+            self._show_import_instructions(colleague_name, output_file)
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create OmniFocus perspective plist: {e}")
+            return False
+
     def create_colleague_tag(self, colleague_name: str, slack_handle: str) -> bool:
         """
         Create a hierarchical tag in OmniFocus for the colleague.
@@ -288,19 +337,177 @@ class OmniFocusClient:
     
     def get_tag_info(self, colleague_name: str) -> Dict[str, str]:
         """
-        Get information about the tag that would be created for a colleague.
+        Get information about the tag for a colleague, including actual tag ID if it exists.
         
         Args:
             colleague_name: Full name of the colleague
             
         Returns:
-            Dictionary containing tag information
+            Dictionary containing tag information with actual tag ID
         """
         tag_name = self._generate_tag_name(colleague_name)
+        
+        # Try to find the actual child tag ID
+        actual_tag_id = self._find_child_tag_id(colleague_name)
         
         return {
             'tag_name': tag_name,
             'method': self.method,
-            'tag_id': self.tag_id,
+            'tag_id': actual_tag_id or self.tag_id,  # Fall back to parent if child not found
             'create_task': self.create_task
         }
+    
+    def _find_child_tag_id(self, colleague_name: str) -> Optional[str]:
+        """
+        Find the actual tag ID for a colleague's child tag.
+        
+        Args:
+            colleague_name: Full name of the colleague
+            
+        Returns:
+            The tag ID if found, None otherwise
+        """
+        try:
+            tag_name = self._generate_tag_name(colleague_name)
+            self.logger.debug(f"Searching for child tag: {tag_name}")
+            
+            # AppleScript to search for the child tag by name using nested loops
+            applescript = f'''
+            tell application "OmniFocus"
+                tell default document
+                    -- Search through all tags up to 3 levels deep
+                    repeat with level1Tag in tags
+                        if name of level1Tag is "{tag_name}" then
+                            return id of level1Tag as string
+                        end if
+                        
+                        -- Search level 2 (children of level 1)
+                        repeat with level2Tag in tags of level1Tag
+                            if name of level2Tag is "{tag_name}" then
+                                return id of level2Tag as string
+                            end if
+                            
+                            -- Search level 3 (children of level 2)
+                            repeat with level3Tag in tags of level2Tag
+                                if name of level3Tag is "{tag_name}" then
+                                    return id of level3Tag as string
+                                end if
+                            end repeat
+                        end repeat
+                    end repeat
+                    
+                    return "NOT_FOUND"
+                end tell
+            end tell
+            '''
+            
+            result = subprocess.run(
+                ['osascript', '-e', applescript],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                tag_id = result.stdout.strip()
+                if tag_id and tag_id != "NOT_FOUND":
+                    self.logger.debug(f"Found child tag ID for '{tag_name}': {tag_id}")
+                    return tag_id
+                else:
+                    self.logger.debug(f"Child tag '{tag_name}' not found")
+                    return None
+            else:
+                self.logger.warning(f"Failed to search for child tag: {result.stderr}")
+                return None
+                
+        except Exception as e:
+            self.logger.warning(f"Error searching for child tag ID: {e}")
+            return None
+    
+    def _open_perspective_for_editing(self, perspective_name: str) -> None:
+        """
+        Open the specified perspective in edit mode.
+        
+        Args:
+            perspective_name: Name of the perspective to open for editing
+        """
+        try:
+            # Open perspective settings 
+            subprocess.run(['open', 'omnifocus:///perspectives'], timeout=5)
+            self.logger.info(f"Opened Perspectives manager - you can now edit '{perspective_name}' perspective")
+        except Exception as e:
+            self.logger.warning(f"Could not automatically open Perspectives manager: {e}")
+            self.logger.info(f"Please manually open View → Organize Perspectives to edit '{perspective_name}'")
+    
+    def _open_perspectives_for_template_copying(self, perspective_name: str, colleague_name: str) -> None:
+        """
+        Open both the new perspective and template for easy filter copying.
+        
+        Args:
+            perspective_name: Name of the newly created perspective  
+            colleague_name: Full name of the colleague (for tag reference)
+        """
+        try:
+            # Check if template exists first
+            check_template = subprocess.run([
+                'osascript', '-e',
+                'tell application "OmniFocus" to tell default document to return ("COLLEAGUE_TEMPLATE" is in perspective names)'
+            ], capture_output=True, text=True, timeout=10)
+            
+            if check_template.returncode == 0 and 'true' in check_template.stdout.lower():
+                # Template exists - open both perspectives
+                subprocess.run(['open', 'omnifocus:///perspective/COLLEAGUE_TEMPLATE'], timeout=5)
+                subprocess.run(['open', 'omnifocus:///perspectives'], timeout=5)
+                
+                self.logger.info("✅ Opened COLLEAGUE_TEMPLATE and Perspectives manager")
+                self.logger.info("📋 TEMPLATE COPYING INSTRUCTIONS:")
+                self.logger.info("   1. In Perspectives manager, select your new perspective: " + perspective_name)  
+                self.logger.info("   2. Click 'Edit' and go to 'Contents' tab")
+                self.logger.info("   3. Copy ALL filter rules from COLLEAGUE_TEMPLATE:")
+                self.logger.info("      • Availability: Available, Waiting")  
+                self.logger.info("      • Status: Any Status")
+                self.logger.info("      • Tags: Change to '" + colleague_name + "' tag")
+                self.logger.info("   4. Save the perspective")
+                self.logger.info("   5. Test by opening the " + perspective_name + " perspective")
+            else:
+                # Template doesn't exist - provide setup instructions
+                subprocess.run(['open', 'omnifocus:///perspectives'], timeout=5)
+                
+                self.logger.warning("⚠️  COLLEAGUE_TEMPLATE not found!")
+                self.logger.info("📋 TEMPLATE SETUP NEEDED (one-time):")
+                self.logger.info("   1. In the Perspectives manager, find 'Cristian' perspective")  
+                self.logger.info("   2. Right-click on 'Cristian' → 'Duplicate'")
+                self.logger.info("   3. Rename the duplicate to 'COLLEAGUE_TEMPLATE'")
+                self.logger.info("   4. Then edit your new '" + perspective_name + "' perspective")
+                self.logger.info("   5. Copy all filter settings from COLLEAGUE_TEMPLATE")
+                self.logger.info("   6. Change the tag filter to '" + colleague_name + "'")
+                
+        except Exception as e:
+            self.logger.warning(f"Could not automatically open perspectives: {e}")
+            self._open_perspective_for_editing(perspective_name)
+    
+    def _show_import_instructions(self, colleague_name: str, output_file: str) -> None:
+        """Show instructions for importing the generated perspective plist."""
+        perspective_folder = os.path.dirname(output_file)
+        
+        self.logger.info("✅ Perspective plist generated successfully!")
+        self.logger.info(f"📁 Perspective file: {perspective_folder}")
+        self.logger.info("")
+        self.logger.info("📋 TO IMPORT INTO OMNIFOCUS:")
+        self.logger.info("   1. Open Finder and navigate to the perspectives folder")
+        self.logger.info(f"   2. Double-click the '{os.path.basename(perspective_folder)}' folder")
+        self.logger.info("   3. OmniFocus will open and import the perspective automatically")
+        self.logger.info(f"   4. The '{colleague_name}' perspective will appear in your perspectives list")
+        self.logger.info("")
+        self.logger.info("🎯 The perspective is already configured with:")
+        self.logger.info(f"   • Tag filter: {colleague_name}")
+        self.logger.info("   • Availability: Available and Waiting tasks")
+        self.logger.info("   • All other settings from the Cristian template")
+        
+        # Optionally open the folder for the user
+        try:
+            import subprocess
+            subprocess.run(['open', '-R', output_file], timeout=5)
+            self.logger.info("📂 Opened perspective folder in Finder")
+        except Exception as e:
+            self.logger.debug(f"Could not open folder automatically: {e}")

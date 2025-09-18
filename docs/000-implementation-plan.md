@@ -36,7 +36,9 @@ Automate the workflow for managing one-on-one meetings with colleagues, integrat
 * Two possible approaches:
 
   * **Via API** (if accessible): create a new tag for the colleague.
-  * **Via x-callback-url**: leverage OmniFocus’ URL scheme to add the tag automatically.
+  * **Via x-callback-url**: leverage OmniFocus' URL scheme to add the tag automatically.
+
+* **Perspective Creation**: Automatically create a focused perspective for the colleague to view related tasks and meetings.
 
 ### 4. Obsidian Integration
 
@@ -45,7 +47,7 @@ Automate the workflow for managing one-on-one meetings with colleagues, integrat
   * Create a note under a predefined folder (e.g., `People/`).
   * Include:
 
-    * Colleague’s name.
+    * Colleague's name.
     * Slack handle.
     * Link to the photo downloaded from Slack.
 
@@ -53,7 +55,7 @@ Automate the workflow for managing one-on-one meetings with colleagues, integrat
 
 * Attempt to **clone an existing macro** (template) automatically:
 
-  * Replace variables/placeholders with the colleague’s name and Slack handle.
+  * Replace variables/placeholders with the colleague's name and Slack handle.
   * If cloning fails, fallback option: manually duplicate and adjust the macro.
 
 ### 6. Configuration File
@@ -70,6 +72,7 @@ The configuration file (e.g., `config.yaml`) will contain:
 
   * Retrieving the Slack photo.
   * Creating/associating the tag in OmniFocus (via API or x-callback-url).
+  * Creating a focused perspective for the colleague in OmniFocus.
   * Generating the Obsidian note.
   * Cloning/updating the Keyboard Maestro macro.
 * A `config.yaml` (or `.json`) for specifying vault path, secret management, and default paths.

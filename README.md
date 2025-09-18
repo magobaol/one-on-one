@@ -49,6 +49,7 @@ This will:
 2. Look up the colleague in your Slack workspace 
 3. Download their profile photo to local storage
 4. Create a hierarchical tag in OmniFocus under your specified parent tag
+5. Create a personalized OmniFocus perspective for the colleague
 
 ## Configuration
 
@@ -69,6 +70,16 @@ Edit `config.yaml` (created from the template) to set:
 ### Security Note
 
 `config.yaml` is gitignored and contains your personal settings. Never commit this file to version control.
+
+### OmniFocus Perspective Setup
+
+After running the script, you'll need to manually configure the created perspective in OmniFocus:
+
+1. **Filters**: Set to show tasks tagged with the colleague's name (both Available and Waiting items)
+2. **Structure**: Configure as Organized view with Entire Projects
+3. **Icon**: Add the colleague's profile photo as the perspective icon (optional)
+
+This is due to OmniFocus AppleScript API limitations for complex filtering.
 
 ## Requirements
 

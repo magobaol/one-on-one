@@ -81,6 +81,18 @@ class OneOnOneSetup:
         """
         return self.omnifocus_client.create_colleague_tag(name, slack_handle)
     
+    def _create_omnifocus_perspective(self, name: str) -> bool:
+        """
+        Create an OmniFocus perspective for the colleague.
+        
+        Args:
+            name: Colleague's full name
+            
+        Returns:
+            True if perspective was created successfully, False otherwise
+        """
+        return self.omnifocus_client.create_colleague_perspective(name)
+    
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """
         Main method to set up everything for a new colleague.
@@ -109,11 +121,20 @@ class OneOnOneSetup:
             if dry_run:
                 tag_info = self.omnifocus_client.get_tag_info(name)
                 self.logger.info(f"[DRY-RUN] Would create OmniFocus tag: {tag_info['tag_name']}")
-                omnifocus_success = True
+                omnifocus_tag_success = True
             else:
-                omnifocus_success = self._create_omnifocus_tag(name, slack_handle)
-                if not omnifocus_success:
+                omnifocus_tag_success = self._create_omnifocus_tag(name, slack_handle)
+                if not omnifocus_tag_success:
                     self.logger.warning("Failed to create OmniFocus tag, continuing anyway...")
+            
+            # Step 4: Create OmniFocus perspective
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would create OmniFocus perspective: {name}")
+                omnifocus_perspective_success = True
+            else:
+                omnifocus_perspective_success = self._create_omnifocus_perspective(name)
+                if not omnifocus_perspective_success:
+                    self.logger.warning("Failed to create OmniFocus perspective, continuing anyway...")
             
             # TODO: Additional integrations will be added in subsequent commits
             # - Obsidian note creation

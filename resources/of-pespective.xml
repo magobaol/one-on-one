@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>filterRules</key>
+	<string>[{"aggregateType":"all","aggregateRules":[{"actionHasAllOfTags":["#personTagId"]},{"actionHasAllOfTags":["ih_cpnv8hYD"]},{"actionAvailability":"remaining"}]},{"aggregateType":"all","aggregateRules":[{"actionHasAnyOfTags":["#personTagId"]},{"actionAvailability":"available"}]}]</string>
+	<key>name</key>
+	<string>#perspectiveName</string>
+	<key>topLevelFilterAggregation</key>
+	<string>any</string>
+	<key>useSavedColumns</key>
+	<true/>
+	<key>useSavedExpansion</key>
+	<true/>
+	<key>version</key>
+	<string>3.1</string>
+	<key>viewState</key>
+	<dict>
+		<key>layoutMode</key>
+		<string>fluid</string>
+		<key>viewMode</key>
+		<string>project</string>
+		<key>viewModeState</key>
+		<dict>
+			<key>project</key>
+			<dict>
+				<key>actionCompletionFilter</key>
+				<string>all</string>
+				<key>actionDurationFilter</key>
+				<string>any</string>
+				<key>actionFlaggedFilter</key>
+				<string>all</string>
+				<key>collation</key>
+				<string>none</string>
+				<key>expanded</key>
+				<array>
+					<string>f1CHV4BKlcz</string>
+					<string>g9KbIxzKD-q</string>
+				</array>
+				<key>sidebarFilter</key>
+				<string>all-projects</string>
+				<key>sort</key>
+				<string>none</string>
+				<key>visibleColumnNames</key>
+				<array>
+					<string>dateDue</string>
+					<string>noteExists</string>
+				</array>
+			</dict>
+		</dict>
+	</dict>
+</dict>
+</plist>
