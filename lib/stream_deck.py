@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import subprocess
+import time
 import uuid
 import zipfile
 import tempfile
@@ -455,7 +456,6 @@ class StreamDeckClient:
             subprocess.run(['open', action_file], timeout=10, check=True)
             
             # Give Stream Deck a moment to import the action
-            import time
             time.sleep(2)
             
             # Step 2: Open Stream Deck app to show the imported action
