@@ -2,13 +2,13 @@
 
 ## Goal
 
-Automate the workflow for managing one-on-one meetings with colleagues, integrating Slack, OmniFocus, Obsidian, and Keyboard Maestro.
+Automate the complete workflow for managing one-on-one meetings with colleagues, integrating Slack, OmniFocus, Obsidian, Keyboard Maestro, and Stream Deck to create a seamless, one-button automation experience.
 
 ## Inputs (all mandatory)
 
-* **Name** (colleague’s name)
-* **Slack handle** (colleague’s Slack username)
-* **Photo** (downloaded from Slack)
+* **Name** (colleague's name)
+* **Slack handle** (colleague's Slack username)
+* **Photo** (downloaded from Slack and used across all integrations)
 
 ## Steps
 
@@ -29,50 +29,77 @@ Automate the workflow for managing one-on-one meetings with colleagues, integrat
 * Using Slack API:
 
   * Retrieve the profile photo of the colleague based on the Slack handle.
-  * Save the photo locally for later use in Obsidian.
+  * Save the photo locally for use across all integrations (Obsidian notes, OmniFocus icons, Keyboard Maestro macros, Stream Deck buttons).
 
 ### 3. OmniFocus Integration
 
-* Two possible approaches:
+* **Hierarchical Tag Creation**: Using AppleScript integration to create colleague tags under existing organizational structure.
 
-  * **Via API** (if accessible): create a new tag for the colleague.
-  * **Via x-callback-url**: leverage OmniFocus' URL scheme to add the tag automatically.
+* **Custom Perspective Generation**: Automatically generate focused perspectives using template-based plist approach:
 
-* **Perspective Creation**: Automatically create a focused perspective for the colleague to view related tasks and meetings.
+  * Parse existing perspective templates and replace placeholders.
+  * Generate colleague-specific tag filtering rules.
+  * Embed profile photo as perspective icon.
+  * Create importable `.ofocus-perspective` bundles for double-click import.
 
 ### 4. Obsidian Integration
 
-* In the specified vault (provided by the user at runtime, not hardcoded):
+* **Structured Note Creation** within the configured vault:
 
-  * Create a note under a predefined folder (e.g., `People/`).
-  * Include:
-
-    * Colleague's name.
-    * Slack handle.
-    * Link to the photo downloaded from Slack.
+  * Create colleague-specific folders under organized hierarchy (e.g., `80 Spaces/people/Colleague Name/`).
+  * Generate notes with embedded profile photos using Obsidian-style image links.
+  * Implement conflict resolution for existing notes (automatic numbering).
+  * Copy profile photos directly into vault structure for seamless integration.
 
 ### 5. Keyboard Maestro Integration
 
-* Attempt to **clone an existing macro** (template) automatically:
+* Automatically generate colleague-specific macros using an **export/modify/import approach**:
 
-  * Replace variables/placeholders with the colleague's name and Slack handle.
-  * If cloning fails, fallback option: manually duplicate and adjust the macro.
+  * Retrieve template macro XML via AppleScript.
+  * Replace placeholders (`#obsidianNoteName`, `#ofPerspectiveName`) with colleague information.
+  * Embed colleague's profile photo as custom TIFF icon data.
+  * Generate UUID for macro identification and inter-service linking.
+  * Create importable `.kmmacros` file for seamless double-click import.
 
-### 6. Configuration File
+### 6. Stream Deck Integration
+
+* Create visual automation buttons that complete the workflow chain:
+
+  * Generate colleague-specific Stream Deck actions using included template (`resources/streamDeckButton.streamDeckAction`).
+  * Link actions to Keyboard Maestro macros via UUID chaining.
+  * Convert profile photos to Stream Deck format (288x288 PNG icons).
+  * Create importable `.streamDeckAction` files for one-button colleague access.
+  * Enable instant workflow execution directly from Stream Deck interface with standardized template.
+
+### 7. Configuration File
 
 The configuration file (e.g., `config.yaml`) will contain:
 
 * Path of the Obsidian vault.
 * Parameters for retrieving the Slack token from 1Password (CLI item/field or Connect Server credentials).
-* Default paths/folders for storing downloaded photos.
+* Keyboard Maestro template macro configuration (UUID and name).
+* Stream Deck integration (fully automated with fixed template and position from resources directory).
+* Output folder organization settings for colleague-specific file structure.
 
 ## Deliverables
 
 * A Python script (`one_on_one_setup.py`) capable of:
 
-  * Retrieving the Slack photo.
-  * Creating/associating the tag in OmniFocus (via API or x-callback-url).
-  * Creating a focused perspective for the colleague in OmniFocus.
-  * Generating the Obsidian note.
-  * Cloning/updating the Keyboard Maestro macro.
-* A `config.yaml` (or `.json`) for specifying vault path, secret management, and default paths.
+  * **Slack Integration**: Retrieving colleague profile photos with pagination support.
+  * **OmniFocus Integration**: Creating hierarchical tags and generating custom perspectives with embedded icons.
+  * **Obsidian Integration**: Creating structured notes with embedded profile photos in organized vault folders.
+  * **Keyboard Maestro Integration**: Generating personalized macros with custom icons and parameter replacement.
+  * **Stream Deck Integration**: Creating visual automation buttons linked to Keyboard Maestro macros.
+  * **Output Organization**: Generating colleague-specific folders with all automation artifacts.
+  * **UUID Chaining**: Seamless integration between Keyboard Maestro and Stream Deck via shared identifiers.
+
+* A comprehensive `config.yaml` for specifying:
+  * Vault paths and folder structure.
+  * Secure 1Password CLI integration.
+  * Template macro and action configurations.
+  * Output organization preferences.
+
+* **Complete Automation Chain**: One command generates all files needed for:
+  * Double-click imports (OmniFocus perspectives, Keyboard Maestro macros, Stream Deck actions).
+  * Instant colleague setup with visual interface via Stream Deck.
+  * Organized, scalable file structure for long-term management.

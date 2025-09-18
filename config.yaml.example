@@ -37,3 +37,8 @@ obsidian:
 keyboard_maestro:
   template_uuid: "B8D72CC1-7B5F-4F04-8F08-5A0A6B89B6C7"  # UUID of the template macro to duplicate
   template_name: "-One-to-One - Template"  # Name of the template macro
+
+# Stream Deck settings (all settings are fixed for standardization)
+# Template file: resources/streamDeckButton.streamDeckAction
+# Grid position: 0,0 (fixed)
+# No configuration required - Stream Deck integration works out of the box

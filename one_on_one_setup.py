@@ -19,6 +19,7 @@ from lib.omnifocus import OmniFocusClient
 from lib.output_manager import OutputManager
 from lib.obsidian import ObsidianClient
 from lib.keyboard_maestro import KeyboardMaestroClient
+from lib.stream_deck import StreamDeckClient
 
 
 class OneOnOneSetup:
@@ -37,6 +38,7 @@ class OneOnOneSetup:
         self.omnifocus_client = OmniFocusClient(self.config, self.output_manager)
         self.obsidian_client = self._initialize_obsidian_client()
         self.keyboard_maestro_client = self._initialize_keyboard_maestro_client()
+        self.stream_deck_client = self._initialize_stream_deck_client()
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -81,6 +83,16 @@ class OneOnOneSetup:
             return KeyboardMaestroClient(self.config, self.output_manager)
         except Exception as e:
             self.logger.warning(f"Keyboard Maestro integration disabled due to configuration error: {e}")
+            return None
+    
+    def _initialize_stream_deck_client(self) -> Optional['StreamDeckClient']:
+        """Initialize Stream Deck client with fixed template and position."""
+        try:
+            # Stream Deck client uses fixed template and grid position for standardization
+            # No configuration required - works out of the box
+            return StreamDeckClient(self.config, self.output_manager)
+        except Exception as e:
+            self.logger.warning(f"Stream Deck integration disabled due to template file error: {e}")
             return None
     
     
@@ -140,7 +152,7 @@ class OneOnOneSetup:
             
         return self.obsidian_client.create_colleague_note(name, slack_handle)
     
-    def _create_keyboard_maestro_macro(self, name: str, slack_handle: str) -> bool:
+    def _create_keyboard_maestro_macro(self, name: str, slack_handle: str) -> tuple[bool, str]:
         """
         Create a Keyboard Maestro macro for the colleague.
         
@@ -149,13 +161,36 @@ class OneOnOneSetup:
             slack_handle: Colleague's Slack username
             
         Returns:
-            True if macro was created successfully, False otherwise
+            Tuple of (success_status, macro_uuid):
+            - success_status: True if macro was created successfully, False otherwise
+            - macro_uuid: The generated macro UUID if successful, None if failed
         """
         if not self.keyboard_maestro_client:
             self.logger.info("Keyboard Maestro integration disabled - skipping macro creation")
-            return True
+            return (True, None)
             
         return self.keyboard_maestro_client.create_colleague_macro(name, slack_handle)
+    
+    def _create_stream_deck_action(self, name: str, km_macro_uuid: str) -> bool:
+        """
+        Create a Stream Deck action for the colleague that links to their Keyboard Maestro macro.
+        
+        Args:
+            name: Colleague's full name
+            km_macro_uuid: UUID of the colleague's Keyboard Maestro macro
+            
+        Returns:
+            True if action was created successfully, False otherwise
+        """
+        if not self.stream_deck_client:
+            self.logger.info("Stream Deck integration disabled - skipping action creation")
+            return True
+        
+        if not km_macro_uuid:
+            self.logger.info("No Keyboard Maestro UUID available - skipping Stream Deck action creation")
+            return True
+            
+        return self.stream_deck_client.create_colleague_action(name, km_macro_uuid)
     
     def setup_colleague(self, name: str, slack_handle: str, dry_run: bool = False):
         """
@@ -213,10 +248,21 @@ class OneOnOneSetup:
             if dry_run:
                 self.logger.info(f"[DRY-RUN] Would create Keyboard Maestro macro: One-to-One - {name}")
                 keyboard_maestro_success = True
+                km_macro_uuid = "DRY-RUN-UUID-123"
             else:
-                keyboard_maestro_success = self._create_keyboard_maestro_macro(name, slack_handle)
+                keyboard_maestro_success, km_macro_uuid = self._create_keyboard_maestro_macro(name, slack_handle)
                 if not keyboard_maestro_success:
                     self.logger.warning("Failed to create Keyboard Maestro macro, continuing anyway...")
+                    km_macro_uuid = None
+            
+            # Step 7: Create Stream Deck action
+            if dry_run:
+                self.logger.info(f"[DRY-RUN] Would create Stream Deck action: One-to-One - {name}")
+                stream_deck_success = True
+            else:
+                stream_deck_success = self._create_stream_deck_action(name, km_macro_uuid)
+                if not stream_deck_success:
+                    self.logger.warning("Failed to create Stream Deck action, continuing anyway...")
             
             self.logger.info("Setup completed successfully!")
             

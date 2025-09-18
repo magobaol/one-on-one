@@ -15,7 +15,7 @@ import logging
 import subprocess
 import uuid
 import xml.etree.ElementTree as ET
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import plistlib
 import os
 import time
@@ -50,7 +50,7 @@ class KeyboardMaestroClient:
         self.logger = logging.getLogger(__name__)
         self.logger.info("Keyboard Maestro client initialized")
     
-    def create_colleague_macro(self, colleague_name: str, slack_handle: str) -> bool:
+    def create_colleague_macro(self, colleague_name: str, slack_handle: str) -> Tuple[bool, Optional[str]]:
         """
         Create a new Keyboard Maestro macro for a colleague by exporting, modifying, and creating import file.
         
@@ -59,7 +59,9 @@ class KeyboardMaestroClient:
             slack_handle: Slack handle (without @)
             
         Returns:
-            True if successful, False otherwise
+            Tuple of (success_status, macro_uuid): 
+            - success_status: True if successful, False otherwise
+            - macro_uuid: The generated macro UUID if successful, None if failed
         """
         try:
             self.logger.info(f"Creating Keyboard Maestro macro for {colleague_name}")
@@ -68,29 +70,30 @@ class KeyboardMaestroClient:
             template_xml = self._get_macro_xml(self.template_uuid)
             if not template_xml:
                 self.logger.error("Failed to get template macro XML")
-                return False
+                return (False, None)
             
             # Step 2: Create modified macro XML with colleague data
-            modified_xml = self._create_modified_macro_xml(template_xml, colleague_name)
-            if not modified_xml:
+            modified_xml, macro_uuid = self._create_modified_macro_xml(template_xml, colleague_name)
+            if not modified_xml or not macro_uuid:
                 self.logger.error("Failed to create modified macro XML")
-                return False
+                return (False, None)
             
             # Step 3: Create importable .kmmacros file
             kmmacros_file = self._create_kmmacros_file(modified_xml, colleague_name)
             if not kmmacros_file:
                 self.logger.error("Failed to create .kmmacros file")
-                return False
+                return (False, None)
             
             # Step 4: Provide user instructions
             self._show_import_instructions(kmmacros_file, colleague_name)
             
             self.logger.info(f"✅ Created Keyboard Maestro macro: One-to-One - {colleague_name}")
-            return True
+            self.logger.debug(f"Generated macro UUID: {macro_uuid}")
+            return (True, macro_uuid)
             
         except Exception as e:
             self.logger.error(f"Failed to create Keyboard Maestro macro: {e}")
-            return False
+            return (False, None)
     
     def _duplicate_template_macro(self) -> Optional[str]:
         """
@@ -490,7 +493,7 @@ class KeyboardMaestroClient:
             self.logger.warning(f"Error with clipboard method: {e}")
             return False
     
-    def _create_modified_macro_xml(self, template_xml: str, colleague_name: str) -> Optional[str]:
+    def _create_modified_macro_xml(self, template_xml: str, colleague_name: str) -> Tuple[Optional[str], Optional[str]]:
         """
         Create modified macro XML with colleague data and custom icon.
         
@@ -499,7 +502,9 @@ class KeyboardMaestroClient:
             colleague_name: Name of the colleague for placeholder replacement
             
         Returns:
-            Modified XML content, or None if failed
+            Tuple of (modified_xml, macro_uuid): 
+            - modified_xml: Modified XML content, or None if failed
+            - macro_uuid: The generated macro UUID, or None if failed
         """
         try:
             # Parse the template XML
@@ -509,7 +514,8 @@ class KeyboardMaestroClient:
             plist_data['Name'] = f"One-to-One - {colleague_name}"
             
             # Generate new UUID for the macro
-            plist_data['UID'] = str(uuid.uuid4()).upper()
+            macro_uuid = str(uuid.uuid4()).upper()
+            plist_data['UID'] = macro_uuid
             
             # Update creation and modification dates
             current_time = time.time() + 978307200  # Convert to Apple's timestamp format
@@ -526,12 +532,13 @@ class KeyboardMaestroClient:
             else:
                 self.logger.warning("Failed to get custom icon data, keeping template icon")
             
-            # Convert back to XML
-            return plistlib.dumps(plist_data, fmt=plistlib.FMT_XML).decode()
+            # Convert back to XML and return both XML and UUID
+            modified_xml = plistlib.dumps(plist_data, fmt=plistlib.FMT_XML).decode()
+            return (modified_xml, macro_uuid)
             
         except Exception as e:
             self.logger.error(f"Error creating modified macro XML: {e}")
-            return None
+            return (None, None)
     
     def _replace_placeholders_in_actions(self, actions: list, colleague_name: str):
         """
