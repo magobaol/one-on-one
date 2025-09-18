@@ -6,12 +6,10 @@ Based on analysis of exported perspective structure.
 """
 
 import io
-import json
 import logging
 import plistlib
 import os
-from typing import Dict, Any, Optional
-from pathlib import Path
+from typing import Dict, Any
 from .output_manager import OutputManager
 
 try:
@@ -147,47 +145,3 @@ class PerspectiveGenerator:
         except Exception as e:
             # Don't fail the entire process if icon creation fails
             self.logger.warning(f"Failed to create perspective icon: {e}")
-    
-    def analyze_template_tags(self, template_path: str) -> Dict[str, Any]:
-        """Analyze template XML to show tag structure (for debugging)."""
-        try:
-            xml_content = self._read_template_xml(template_path)
-            template_data = self._xml_to_plist_data(xml_content)
-            filter_rules = json.loads(template_data.get('filterRules', '[]'))
-            
-            analysis = {
-                'name': template_data.get('name'),
-                'version': template_data.get('version'),
-                'aggregation': template_data.get('topLevelFilterAggregation'),
-                'placeholders': [],
-                'tag_ids': set(),
-                'rules_structure': []
-            }
-            
-            # Check for placeholders in the original XML
-            if '#perspectiveName' in xml_content:
-                analysis['placeholders'].append('#perspectiveName')
-            if '#personTagId' in xml_content:
-                analysis['placeholders'].append('#personTagId')
-            
-            for rule in filter_rules:
-                rule_info = {
-                    'type': rule.get('aggregateType'),
-                    'conditions': []
-                }
-                
-                if 'aggregateRules' in rule:
-                    for aggregate_rule in rule['aggregateRules']:
-                        for key, value in aggregate_rule.items():
-                            if key in ['actionHasAllOfTags', 'actionHasAnyOfTags']:
-                                analysis['tag_ids'].update(value)
-                            rule_info['conditions'].append({key: value})
-                
-                analysis['rules_structure'].append(rule_info)
-            
-            analysis['tag_ids'] = list(analysis['tag_ids'])
-            return analysis
-            
-        except Exception as e:
-            self.logger.error(f"Failed to analyze template: {e}")
-            raise
