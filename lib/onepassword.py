@@ -6,9 +6,7 @@ secrets like Slack API tokens without storing them in configuration files.
 """
 
 import subprocess
-import json
 import logging
-from typing import Dict, Any
 
 
 class OnePasswordClient:
