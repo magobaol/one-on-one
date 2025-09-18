@@ -8,7 +8,6 @@ all their related files (photos, perspectives, notes, etc.).
 
 import os
 import logging
-from pathlib import Path
 from typing import Dict, Any
 
 
@@ -133,54 +132,3 @@ class OutputManager:
             self.logger.error(f"Failed to create folder {folder_path}: {e}")
             raise
     
-    def list_colleagues(self) -> list:
-        """
-        List all colleagues that have folders in the output directory.
-        
-        Returns:
-            List of colleague folder names
-        """
-        try:
-            if not os.path.exists(self.base_folder):
-                return []
-            
-            colleagues = []
-            for item in os.listdir(self.base_folder):
-                item_path = os.path.join(self.base_folder, item)
-                if os.path.isdir(item_path):
-                    colleagues.append(item)
-            
-            return sorted(colleagues)
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to list colleagues: {e}")
-            return []
-    
-    def get_colleague_files(self, colleague_name: str) -> Dict[str, str]:
-        """
-        Get paths to all files for a colleague.
-        
-        Args:
-            colleague_name: Full name of the colleague
-            
-        Returns:
-            Dictionary with file types and their paths
-        """
-        colleague_folder = self.get_colleague_folder(colleague_name)
-        
-        files = {
-            'folder': colleague_folder,
-            'photo': self.get_photo_path(colleague_name),
-            'perspective_folder': self.get_perspective_folder(colleague_name),
-            'perspective_plist': self.get_perspective_plist_path(colleague_name),
-            'perspective_icon': self.get_perspective_icon_path(colleague_name)
-        }
-        
-        # Check which files actually exist
-        for file_type, file_path in files.items():
-            if file_type != 'folder' and os.path.exists(file_path):
-                files[f'{file_type}_exists'] = True
-            else:
-                files[f'{file_type}_exists'] = False
-        
-        return files
