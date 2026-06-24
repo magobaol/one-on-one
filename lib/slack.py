@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from .onepassword import OnePasswordClient
+from .secrets import SecretsClient
 
 
 class SlackClient:
@@ -35,13 +35,13 @@ class SlackClient:
         self.logger.info("Initialized Slack client")
     
     @classmethod
-    def create_from_config(cls, config: Dict[str, Any], onepassword_client: OnePasswordClient, dry_run: bool = False) -> 'SlackClient':
+    def create_from_config(cls, config: Dict[str, Any], secrets_client: SecretsClient, dry_run: bool = False) -> 'SlackClient':
         """
-        Create SlackClient from configuration with 1Password token retrieval.
-        
+        Create SlackClient from configuration with ff-secrets token retrieval.
+
         Args:
             config: Application configuration dictionary
-            onepassword_client: OnePasswordClient for token retrieval
+            secrets_client: SecretsClient for token retrieval
             dry_run: If True, use dummy token for testing
             
         Returns:
@@ -56,19 +56,11 @@ class SlackClient:
             logger.info("Using dummy token for dry-run mode")
             return cls("xoxb-dummy-token-for-testing")
         
-        # Get Slack configuration
-        slack_config = config.get('slack', {}).get('onepassword', {}).get('cli', {})
-        if not slack_config.get('enabled', False):
-            raise ValueError("Slack 1Password integration is not enabled in configuration")
-        
-        if not all(key in slack_config for key in ['item_name', 'field_name']):
-            raise ValueError("Slack configuration missing 'item_name' or 'field_name'")
-        
-        # Retrieve token from 1Password
-        item_name = slack_config['item_name']
-        field_name = slack_config['field_name']
-        token = onepassword_client.get_secret(item_name, field_name)
-        
+        ref = config.get('slack', {}).get('api-token')
+        if not ref:
+            raise ValueError("Slack configuration missing 'api-token'")
+        token = secrets_client.resolve(ref)
+
         return cls(token)
     
     def get_photo_url(self, user_info: Dict[str, Any], size: str = "512") -> Optional[str]:

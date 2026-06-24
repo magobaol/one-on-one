@@ -11,13 +11,9 @@ output:
 
 # Slack settings
 slack:
-  # 1Password CLI integration for secure token retrieval
-  onepassword:
-    cli:
-      enabled: true
-      item_name: ""  # Name of your 1Password item containing Slack token (e.g., "Company - Slack API")
-      field_name: "credential"  # Field name within the item (common: "password", "credential", "api_token")
-  
+  # Secret reference resolved via ff-secrets (e.g. ffsec:hootsuite.slack)
+  api-token: "ffsec:<alias>"
+
   # Photo settings
   photo_size: "512"  # Slack photo size (72, 192, 512, 1024)
 

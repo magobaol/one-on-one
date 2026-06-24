@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from lib.onepassword import OnePasswordClient
+from lib.secrets import SecretsClient
 from lib.slack import SlackClient
 from lib.photo_manager import PhotoManager
 from lib.omnifocus import OmniFocusClient
@@ -32,7 +32,7 @@ class OneOnOneSetup:
         self._setup_logging()
         
         # Initialize service clients
-        self.onepassword_client = OnePasswordClient()
+        self.secrets_client = SecretsClient()
         self.output_manager = OutputManager(self.config)
         self.photo_manager = PhotoManager(self.config, self.output_manager)
         self.omnifocus_client = OmniFocusClient(self.config, self.output_manager)
@@ -227,7 +227,7 @@ class OneOnOneSetup:
         
         try:
             # Step 1: Create authenticated Slack client
-            slack_client = SlackClient.create_from_config(self.config, self.onepassword_client, dry_run)
+            slack_client = SlackClient.create_from_config(self.config, self.secrets_client, dry_run)
             
             # Step 2: Download Slack profile photo
             if dry_run:
