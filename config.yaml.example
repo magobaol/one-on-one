@@ -11,7 +11,7 @@ output:
 
 # Slack settings
 slack:
-  # Secret reference resolved via ff-secrets (e.g. ffsec:hootsuite.slack)
+  # Secret reference resolved via ff-secrets (e.g. ffsec:hootsuite.slack.credential)
   api-token: "ffsec:<alias>"
 
   # Photo settings
